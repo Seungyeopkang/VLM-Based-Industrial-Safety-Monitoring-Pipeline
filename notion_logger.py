@@ -1,6 +1,7 @@
 import os
 import sys
 import re
+import argparse
 import requests
 from dotenv import load_dotenv
 
@@ -39,7 +40,6 @@ def parse_inline_text(text):
     last_idx = 0
     
     for match in pattern.finditer(text):
-        # 매치 이전의 일반 텍스트 추가
         if match.start() > last_idx:
             plain_part = text[last_idx:match.start()]
             rich_text.append({
@@ -96,7 +96,6 @@ def convert_markdown_to_blocks(markdown_text):
         # 코드 블록 처리
         if stripped.startswith("```"):
             if in_code_block:
-                # 코드 블록 종료
                 blocks.append({
                     "object": "block",
                     "type": "code",
@@ -108,10 +107,8 @@ def convert_markdown_to_blocks(markdown_text):
                 code_content = []
                 in_code_block = False
             else:
-                # 코드 블록 시작
                 in_code_block = True
                 lang = stripped[3:].strip()
-                # 노션 API가 허용하는 언어로 맵핑 (기본값 plain text)
                 code_language = lang if lang else "plain text"
             continue
             
@@ -178,24 +175,52 @@ def convert_markdown_to_blocks(markdown_text):
             
     return blocks
 
-def create_dev_log(title, content_markdown):
+def create_dev_log(title, content_markdown, sprint=None, categories=None):
     url = "https://api.notion.com/v1/pages"
     
     blocks = convert_markdown_to_blocks(content_markdown)
     
+    # 기본 properties 설정 (이름)
+    properties = {
+        "Name": {
+            "title": [
+                {
+                    "text": {
+                        "content": title
+                    }
+                }
+            ]
+        }
+    }
+    
+    # 1. 제목에서 날짜 추출 (YYYY-MM-DD)
+    date_match = re.match(r'^(\d{4}-\d{2}-\d{2})', title)
+    if date_match:
+        extracted_date = date_match.group(1)
+        properties["Date"] = {
+            "date": {
+                "start": extracted_date
+            }
+        }
+        
+    # 2. 스프린트 속성 추가
+    if sprint:
+        properties["Sprint"] = {
+            "select": {
+                "name": sprint
+            }
+        }
+        
+    # 3. 카테고리 속성 추가
+    if categories:
+        category_list = [c.strip() for c in categories.split(",") if c.strip()]
+        properties["Category"] = {
+            "multi_select": [{"name": c} for c in category_list]
+        }
+        
     payload = {
         "parent": {"database_id": NOTION_DATABASE_ID},
-        "properties": {
-            "Name": {
-                "title": [
-                    {
-                        "text": {
-                            "content": title
-                        }
-                    }
-                ]
-            }
-        },
+        "properties": properties,
         "children": blocks
     }
     
@@ -210,10 +235,12 @@ def create_dev_log(title, content_markdown):
         return False
 
 if __name__ == "__main__":
-    if len(sys.argv) < 3:
-        print("사용법: python notion_logger.py \"제목\" \"마크다운_내용\"")
-        sys.exit(1)
-        
-    title_arg = sys.argv[1]
-    content_arg = sys.argv[2]
-    create_dev_log(title_arg, content_arg)
+    parser = argparse.ArgumentParser(description="노션 개발 일지 자동 생성 스크립트")
+    parser.add_argument("title", type=str, help="일지 제목 (형식: YYYY-MM-DD | 제목)")
+    parser.add_argument("content", type=str, help="일지 마크다운 내용")
+    parser.add_argument("--sprint", type=str, choices=["Sprint 1", "Sprint 2", "Sprint 3", "Sprint 4"], help="해당 스프린트")
+    parser.add_argument("--categories", type=str, help="카테고리 목록 (쉼표로 구분, 예: '환경 구성,디버깅')")
+    
+    args = parser.parse_args()
+    
+    create_dev_log(args.title, args.content, args.sprint, args.categories)
