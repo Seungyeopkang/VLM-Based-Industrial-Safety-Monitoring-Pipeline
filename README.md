@@ -73,13 +73,20 @@ The system operates in a hybrid, resource-optimized 6-step process:
 vlm-safety-monitor/
 ├── detection/
 │   ├── detector.py          # YOLO inference & bounding box drawing
+│   ├── experiments/         # Model benchmarking & evaluations
+│   │   ├── benchmark.py
+│   │   ├── evaluate.py
+│   │   └── generate_report.py
 │   └── weights/             # Pretrained YOLO weights (PPE)
 ├── vlm/
 │   └── analyzer.py          # VLM API call & scene description
 ├── llm/
 │   └── reporter.py          # LLM API call & report generation
 ├── notion/
-│   └── uploader.py          # Notion API integration
+│   ├── uploader.py          # Notion API integration
+│   ├── create_devlog.py     # Programmatic devlog creation
+│   ├── update_progress.py   # Notion progress synchronization
+│   └── archive/             # Archived/one-off utility scripts
 ├── api/
 │   └── main.py              # FastAPI endpoints
 ├── frontend/
@@ -89,6 +96,7 @@ vlm-safety-monitor/
 ├── assets/
 │   └── sample_images/       # Test images
 ├── requirements.txt
+│   └── (To be added)
 └── README.md
 ```
 
