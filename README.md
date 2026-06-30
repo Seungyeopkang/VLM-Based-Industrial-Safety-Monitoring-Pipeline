@@ -25,10 +25,9 @@ The pipeline is designed to mirror real-world industrial safety AI systems, with
 
 The system operates in a hybrid, resource-optimized 6-step process:
 
-**1. Input & Real-Time Monitoring (Detection Model)**
-- Image or video frames are fed into the system.
-- The local object detection model continuously monitors frames with minimal latency.
-- If a potential anomaly or PPE violation is suspected (e.g., a person detected without a helmet or vest), it triggers the heavier VLM/LLM cloud pipeline to save costs.
+**1. Image Upload & Async Execution (Detection Model)**
+- User uploads an image to the FastAPI backend.
+- The local object detection model runs inference. If a potential anomaly or PPE violation is suspected (e.g., a person detected without a helmet or vest, or with ambiguous safety gear status), the system triggers the heavier VLM/LLM cloud pipeline asynchronously to keep the API responsive.
 
 **2. Metadata Extraction (Detection Model)**
 - The detection model detects workers and PPE items, outputting bounding boxes, classes, and confidence scores.
@@ -38,20 +37,20 @@ The system operates in a hybrid, resource-optimized 6-step process:
 - Send the **original image** and the **detection model-extracted text metadata** together to the Vision-Language Model (VLM).
 - VLM interprets the full scene contextually (e.g., "Worker 1 is standing close to a heavy machinery danger zone without a helmet") while avoiding small-object detection hallucinations by relying on the detection model's pre-filter.
 
-**4. LLM Report Generation**
-- Receive VLM scene description as input
-- Classify violation types (Missing PPE / Danger zone access / Abnormal behavior)
-- Determine severity (High / Medium / Low)
-- Generate actionable recommendations based on standard operating procedures (SOP)
+**4. LLM Report Generation & Structured Outputs**
+- Receive VLM scene description as input.
+- Classify violation types (Missing PPE / Danger zone access / Abnormal behavior) and determine severity (High / Medium / Low).
+- Enforce strict JSON output format using **Pydantic schemas** (Structured Outputs) to guarantee schema compliance.
+- Generate actionable recommendations based on standard operating procedures (SOP).
 
 **5. Result Storage**
-- Save complete pipeline output as a JSON file (detection results + VLM output + LLM report)
-- Automatically log results to the connected Notion Database
+- Save complete pipeline output as a JSON file (detection results + VLM output + LLM report).
+- Automatically log results to the connected Notion Database using structural mapping.
 
 **6. HTML Result Dashboard**
-- Display the processed image with drawn bounding boxes
-- Display the VLM situation description
-- Display the final LLM report (Violations / Severity / Actions)
+- Display the uploaded image with drawn bounding boxes.
+- Display the VLM situation description.
+- Display the final structured LLM report (Violations / Severity / Actions).
 
 ---
 
